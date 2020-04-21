@@ -90,6 +90,53 @@ namespace daqu
       return res;
     }
 
+    template <typename timeT>
+    bool in_range(const timeT& target_ts)
+    {
+      return _storage.size() > 2 && target_ts <= (_storage.end() - 1)->ts && target_ts >= (_storage.begin())->ts;
+    }
+
+    template <typename timeT>
+    value_type get_data_inter(const iterator& iter, const timeT& target_ts)
+    {
+      if (iter->ts > target_ts)
+      {
+        if (iter == _storage.begin())
+          return *iter;
+
+        iterator prev_iter = iter - 1;
+
+        double range = (iter->ts - prev_iter->ts).count();
+
+        double w1 = double((target_ts - prev_iter->ts).count()) / range;
+        double w0 = double((iter->ts - target_ts).count()) / range;
+
+        value_type d0 = *prev_iter;
+        value_type d1 = *iter;
+
+        return interpolate_data(d0, w0, d1, w1);
+      }
+      else if (iter->ts < target_ts)
+      {
+        if (iter == _storage.end() - 1)
+          return *iter;
+
+        iterator next_iter = iter + 1;
+
+        double range = (next_iter->ts - iter->ts).count();
+
+        double w1 = double((target_ts - iter->ts).count()) / range;
+        double w0 = double((next_iter->ts - target_ts).count()) / range;
+
+        value_type d0 = *iter;
+        value_type d1 = *next_iter;
+
+        return interpolate_data(d0, w0, d1, w1);
+      }
+      else
+        return *iter;
+    }
+
   private:
     starageT& _storage;
   };
