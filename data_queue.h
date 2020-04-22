@@ -13,6 +13,12 @@ namespace daqu
     timestamp_unorder
   };
 
+  template <typename timeT>
+  decltype(timeT() - timeT()) time_adiff(const timeT& a, const timeT& b)
+  {
+    return (a > b ? a - b : b - a);
+  }
+
   template <typename starageT>
   class storage_data_accesor
   {
@@ -43,11 +49,12 @@ namespace daqu
         if (i == _storage.begin())
           return i;
 
-        const auto& d1 = (i->ts > ts ? i->ts - ts : ts - i->ts);
-        iterator    i2 = i - 1;
+        const auto& d1 = time_adiff(i->ts, ts);
+        iterator    i2 = std::prev(i);
+
         if (i2 != _storage.begin())
         {
-          const auto& d2 = (i2->ts > ts ? i2->ts - ts : ts - i2->ts);
+          const auto& d2 = time_adiff(i2->ts, ts);
           if (d2 < d1)
             i = i2;
         }
@@ -55,8 +62,8 @@ namespace daqu
       }
       else
       {
-        if (_storage.size() > 0)
-          return _storage.end() - 1;
+        if (!_storage.empty())
+          return std::prev(_storage.end());
 
         return _storage.end(); // not found
       }
@@ -76,7 +83,7 @@ namespace daqu
         return res;
       }
 
-      auto ts_diff  = target_ts >= closest->ts ? target_ts - closest->ts : closest->ts - target_ts;
+      auto ts_diff  = time_adiff(target_ts, closest->ts);
       res.time_diff = ts_diff;
 
       if (ts_diff > max_ts_diff)
@@ -93,45 +100,34 @@ namespace daqu
     template <typename timeT>
     bool in_range(const timeT& target_ts)
     {
-      return _storage.size() > 2 && target_ts <= (_storage.end() - 1)->ts && target_ts >= (_storage.begin())->ts;
+      return _storage.size() > 2 && target_ts <= (std::prev(_storage.end()))->ts && target_ts >= (_storage.begin())->ts;
     }
 
     template <typename timeT>
     value_type get_data_inter(const iterator& iter, const timeT& target_ts)
     {
+      auto inter = [](const iterator& l, const iterator& r, const timeT& ts) {
+        double range = (r->ts - l->ts).count();
+
+        double w1 = double((ts - l->ts).count()) / range;
+        double w0 = double((r->ts - ts).count()) / range;
+
+        return interpolate_data(*l, w0, *r, w1);
+      };
+
       if (iter->ts > target_ts)
       {
         if (iter == _storage.begin())
           return *iter;
 
-        iterator prev_iter = iter - 1;
-
-        double range = (iter->ts - prev_iter->ts).count();
-
-        double w1 = double((target_ts - prev_iter->ts).count()) / range;
-        double w0 = double((iter->ts - target_ts).count()) / range;
-
-        value_type d0 = *prev_iter;
-        value_type d1 = *iter;
-
-        return interpolate_data(d0, w0, d1, w1);
+        return inter(std::prev(iter), iter, target_ts);
       }
       else if (iter->ts < target_ts)
       {
-        if (iter == _storage.end() - 1)
+        if (iter == std::prev(_storage.end()))
           return *iter;
 
-        iterator next_iter = iter + 1;
-
-        double range = (next_iter->ts - iter->ts).count();
-
-        double w1 = double((target_ts - iter->ts).count()) / range;
-        double w0 = double((next_iter->ts - target_ts).count()) / range;
-
-        value_type d0 = *iter;
-        value_type d1 = *next_iter;
-
-        return interpolate_data(d0, w0, d1, w1);
+        return inter(iter, std::next(iter), target_ts);
       }
       else
         return *iter;
