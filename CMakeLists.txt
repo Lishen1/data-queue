@@ -1,21 +1,23 @@
 cmake_minimum_required(VERSION 3.14)
-set(target data_queue)
-project( ${target})
 
-set(root ${CMAKE_CURRENT_SOURCE_DIR})
+project( data_queue)
 
-set(sources
+option(EXAMPLES_ENABLED "Should the examples to be." YES)
 
- )
+add_library( cppfeatures INTERFACE)
+target_compile_features(cppfeatures INTERFACE cxx_std_17)
 
-set(includes
-    ${root}/data_queue.h
-    ${root}/types.h
-    ${root}/ring_buffer.h
- )
+include(cmake/warnings.cmake)
+add_library( cppwarnings INTERFACE)
+set_project_warinigs(cppwarnings)
 
-source_group(TREE ${root} FILES ${sources} ${includes})
+target_include_directories(cppfeatures INTERFACE include)
 
-add_library(${target} INTERFACE)
+add_library( data_queue INTERFACE )
+target_link_libraries(data_queue INTERFACE cppfeatures cppwarnings)
 
-target_include_directories(${target} INTERFACE ${root})
+message(STATUS "Examples enabled: ${EXAMPLES_ENABLED}")
+
+if ( EXAMPLES_ENABLED )
+    add_subdirectory(examples)
+endif()
