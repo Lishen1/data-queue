@@ -33,13 +33,14 @@ namespace daqu
     };
 
     using iterator   = typename starageT::iterator;
+    using const_iterator = typename starageT::const_iterator;
     using value_type = typename starageT::value_type;
 
     storage_data_accesor(starageT& buff) : _storage(buff){};
 
     /// \brief return iter with equal or greater timestamp
     template <typename timeT>
-    iterator get(const timeT& ts)
+    iterator get(const timeT& ts) const
     {
 
       iterator i = std::lower_bound(_storage.begin(), _storage.end(), ts, [](const value_type& a, const timeT& b) { return a.ts < b; });
@@ -69,8 +70,9 @@ namespace daqu
       }
     }
 
+    
     template <typename timeT>
-    auto get(const timeT& target_ts, const decltype(timeT() - timeT())& max_ts_diff)
+    auto get(const timeT& target_ts, const decltype(timeT() - timeT())& max_ts_diff) const
     {
       iterator closest = get(target_ts);
 
@@ -83,7 +85,7 @@ namespace daqu
         return res;
       }
 
-      auto ts_diff  = time_adiff(target_ts, closest->ts);
+      auto ts_diff = time_adiff(target_ts, closest->ts);
       res.time_diff = ts_diff;
 
       if (ts_diff > max_ts_diff)
@@ -107,10 +109,10 @@ namespace daqu
     value_type get_data_inter(const iterator& iter, const timeT& target_ts)
     {
       auto inter = [](const iterator& l, const iterator& r, const timeT& ts) {
-        double range = (r->ts - l->ts).count();
+        float range = (r->ts - l->ts).count();
 
-        double w1 = double((ts - l->ts).count()) / range;
-        double w0 = double((r->ts - ts).count()) / range;
+        float w1 = float((ts - l->ts).count()) / range;
+        float w0 = float((r->ts - ts).count()) / range;
 
         return interpolate_data(*l, w0, *r, w1);
       };
