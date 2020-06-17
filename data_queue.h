@@ -32,9 +32,15 @@ namespace daqu
       storage_acces_status status;
     };
 
-    using iterator   = typename starageT::iterator;
+    using iterator       = typename starageT::iterator;
     using const_iterator = typename starageT::const_iterator;
-    using value_type = typename starageT::value_type;
+    using value_type     = typename starageT::value_type;
+
+    template <typename timeT>
+    struct result_type
+    {
+      using type = result<iterator, decltype(timeT() - timeT())>;
+    };
 
     storage_data_accesor(starageT& buff) : _storage(buff){};
 
@@ -70,7 +76,6 @@ namespace daqu
       }
     }
 
-    
     template <typename timeT>
     auto get(const timeT& target_ts, const decltype(timeT() - timeT())& max_ts_diff) const
     {
@@ -85,7 +90,7 @@ namespace daqu
         return res;
       }
 
-      auto ts_diff = time_adiff(target_ts, closest->ts);
+      auto ts_diff  = time_adiff(target_ts, closest->ts);
       res.time_diff = ts_diff;
 
       if (ts_diff > max_ts_diff)
