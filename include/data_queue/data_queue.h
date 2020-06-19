@@ -5,7 +5,7 @@
 namespace daqu
 {
 
-  enum class storage_acces_status
+  enum class storage_access_status
   {
     success = 0,
     timestamp_diff_larger_then_thresh,
@@ -20,16 +20,16 @@ namespace daqu
   }
 
   template <typename starageT>
-  class storage_data_accesor
+  class storage_data_accessor
   {
 
   public:
     template <typename iteratorT, typename time_diffT>
     struct result
     {
-      iteratorT            iterator;
-      time_diffT           time_diff;
-      storage_acces_status status;
+      iteratorT             iterator;
+      time_diffT            time_diff;
+      storage_access_status status;
     };
 
     using iterator       = typename starageT::iterator;
@@ -42,7 +42,7 @@ namespace daqu
       using type = result<iterator, decltype(timeT() - timeT())>;
     };
 
-    storage_data_accesor(starageT& buff) : _storage(buff){};
+    storage_data_accessor(starageT& buff) : _storage(buff){};
 
     /// \brief return iter with equal or greater timestamp
     template <typename timeT>
@@ -86,7 +86,7 @@ namespace daqu
 
       if (closest == _storage.end())
       {
-        res.status = storage_acces_status::not_enough_elements;
+        res.status = storage_access_status::not_enough_elements;
         return res;
       }
 
@@ -95,11 +95,11 @@ namespace daqu
 
       if (ts_diff > max_ts_diff)
       {
-        res.status = storage_acces_status::timestamp_diff_larger_then_thresh;
+        res.status = storage_access_status::timestamp_diff_larger_then_thresh;
         return res;
       }
 
-      res.status = storage_acces_status::success;
+      res.status = storage_access_status::success;
 
       return res;
     }
