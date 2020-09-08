@@ -141,7 +141,7 @@ namespace daqu
         if (iter == _storage.begin())
           return *iter;
 
-        return inter(last(), iter, target_ts);
+        return inter(std::prev(iter), iter, target_ts);
       }
       else if (iter->ts < target_ts)
       {
