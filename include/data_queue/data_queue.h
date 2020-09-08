@@ -1,6 +1,7 @@
 #pragma once
 #include "types.h"
 #include <algorithm>
+#include <type_traits>
 
 namespace daqu
 {
@@ -36,18 +37,18 @@ namespace daqu
   {
 
   public:
-    static_assert(std::is_same_v<Container::value_type::stamped_data_category, daqu::stamped_data_category_tag>, "works only with daqu::stamped_data type.");
+    static_assert(std::is_same_v<typename Container::value_type::stamped_data_category, daqu::stamped_data_category_tag>, "works only with daqu::stamped_data type.");
 
     using iterator                      = typename Container::iterator;
     using const_iterator                = typename Container::const_iterator;
     using value_type                    = typename Container::value_type;
     using data_value_type               = typename value_type::data_value_type;
     using time_value_type               = typename value_type::time_value_type;
-    using different_time_value_type     = typename decltype(std::declval<time_value_type>() - std::declval<time_value_type>());
+    using different_time_value_type     = decltype(std::declval<time_value_type>() - std::declval<time_value_type>());
 
     struct result
     {
-      iterator                  iterator;
+      iterator                  it;
       different_time_value_type time_diff;
       storage_access_status status;
     };
@@ -91,7 +92,7 @@ namespace daqu
       iterator closest = get(target_ts);
 
       result res{};
-      res.iterator = closest;
+      res.it = closest;
 
       if (closest == _storage.end())
       {
@@ -153,9 +154,9 @@ namespace daqu
 
     Container& _storage;
   };
-  template<typename Container, typename ...Args>
-  auto make_storage_accessor( Args&& ...args ) {
-    return storage_data_accessor<Container>{std::forward<Args>(args)...};
+  template<typename Container>
+  auto make_storage_accessor( Container& container ) {
+    return storage_data_accessor<Container>(container);
   }
 
 } // namespace daqu

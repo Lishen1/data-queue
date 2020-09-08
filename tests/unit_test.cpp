@@ -78,7 +78,8 @@ TEST(storage_data_accessor, simple_get_inrange_data_iter_test_2)
   tp ref_tp2 = std::chrono::steady_clock::now();
 
   auto accesor = daqu::make_storage_accessor<std::vector<daqu::stamped_data<std::string, tp>>>(buffer);
-  auto accesor2 = daqu::make_storage_accessor<std::vector<daqu::stamped_data<std::string, tp>>>(std::vector<daqu::stamped_data<std::string, tp>>{});
+  std::vector<daqu::stamped_data<std::string, tp>> buffer2 {};
+  auto accesor2 = daqu::make_storage_accessor<std::vector<daqu::stamped_data<std::string, tp>>>(buffer2);
 
   auto d0 = ref_tp0 < ref_tp1;
   auto d1 = ref_tp2 < ref_tp1;
@@ -97,10 +98,10 @@ TEST(storage_data_accessor, simple_get_inrange_data_iter_test_2)
   bool in_range  = accesor.in_range(ref_tp1);
   bool in_range2 = accesor.in_range(std::chrono::steady_clock::now());
 
-  auto dat = accesor.get_data_inter(res.iterator, ref_tp1);
+  auto dat = accesor.get_data_inter(res.it, ref_tp1);
 
   auto dat2 = accesor.get_data_inter(
-      res.iterator, ref_tp1,
+      res.it, ref_tp1,
       [](const daqu::stamped_data<std::string, tp>& a, const float& w0, const daqu::stamped_data<std::string, tp>& b, const float& w1) {
 
         return a;
