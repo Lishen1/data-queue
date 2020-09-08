@@ -51,7 +51,19 @@ TEST(storage_data_accessor, simple_get_inrange_data_iter_test)
   EXPECT_EQ(in_range, true);
   EXPECT_EQ(in_range2, false);
 }
+struct simp_interpolation
+{
+  using tp = std::chrono::time_point<std::chrono::steady_clock, std::chrono::nanoseconds>;
+  daqu::stamped_data<std::string, tp> operator()(const daqu::stamped_data<std::string, tp>& l, const daqu::stamped_data<std::string, tp> &r, const tp& ts)
+  {
+    auto [w1, w0] = daqu::get_coefficients(
+      static_cast<float>((ts - l.ts).count()), 
+      static_cast<float>((r.ts - ts).count()),                           
+      static_cast<float>((r.ts - l.ts).count()));
 
+    return l;
+  }
+};
 TEST(storage_data_accessor, simple_get_inrange_data_iter_test_2)
 {
   using tp    = std::chrono::time_point<std::chrono::steady_clock, std::chrono::nanoseconds>;
@@ -115,10 +127,11 @@ TEST(storage_data_accessor, simple_get_inrange_data_iter_test_2)
 
   auto dat = accesor.get_data_inter(res.it, ref_tp1);
 
-  auto dat2 = accesor.get_data_inter(
-      res.it, ref_tp1, [](const daqu::stamped_data<std::string, tp>& a, const daqu::stamped_data<std::string, tp>& , const tp& ) {
-        return a;
-      });
+  auto dat2 = accesor.get_data_inter(res.it, ref_tp1, simp_interpolation{});
+  using simp = simp_interpolation;
+  auto dat21 = accesor.get_data_inter(res.it, ref_tp1, simp{});
+  using sp = simp;
+  auto dat221 = accesor.get_data_inter(res.it, ref_tp1, sp{});
 
   EXPECT_EQ(res.status, daqu::storage_access_status::timestamp_diff_larger_then_thresh);
   EXPECT_EQ(res2.status, daqu::storage_access_status::not_enough_elements); /**/
