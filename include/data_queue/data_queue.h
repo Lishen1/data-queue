@@ -6,11 +6,12 @@ namespace daqu
 {
   namespace detail
   {
-      template <typename timeT>
+      template <typename T, typename timeT>
       struct default_interpolation_data
       {
-        stamped_data<std::string, timeT> operator()(const stamped_data<std::string, timeT>& a, const float& w0,
-                                                    const stamped_data<std::string, timeT>& b, const float& w1) {
+        stamped_data<T, timeT> operator()(const stamped_data<T, timeT>& a, const float& w0, const stamped_data<T, timeT>& b,
+                                                    const float& w1)
+        {
           return a;
         }
       };
@@ -25,7 +26,7 @@ namespace daqu
   };
 
   template <typename timeT>
-  decltype(timeT() - timeT()) time_adiff(const timeT& a, const timeT& b)
+  auto time_adiff(const timeT& a, const timeT& b)
   {
     return (a > b ? a - b : b - a);
   }
@@ -35,32 +36,29 @@ namespace daqu
   {
 
   public:
-    template <typename iteratorT, typename time_diffT>
+    static_assert(std::is_same_v<Container::value_type::stamped_data_category, daqu::stamped_data_category_tag>, "works only with daqu::stamped_data type.");
+
+    using iterator                      = typename Container::iterator;
+    using const_iterator                = typename Container::const_iterator;
+    using value_type                    = typename Container::value_type;
+    using data_value_type               = typename value_type::data_value_type;
+    using time_value_type               = typename value_type::time_value_type;
+    using different_time_value_type     = typename decltype(std::declval<time_value_type>() - std::declval<time_value_type>());
+
     struct result
     {
-      iteratorT             iterator;
-      time_diffT            time_diff;
+      iterator                  iterator;
+      different_time_value_type time_diff;
       storage_access_status status;
     };
 
-    using iterator       = typename Container::iterator;
-    using const_iterator = typename Container::const_iterator;
-    using value_type     = typename Container::value_type;
-
-    template <typename timeT>
-    struct result_type
-    {
-      using type = result<iterator, decltype(timeT() - timeT())>;
+    storage_data_accessor(Container& buff) : _storage(buff){
     };
 
-    storage_data_accessor(Container& buff) : _storage(buff){};
-
     /// \brief return iter with equal or greater timestamp
-    template <typename timeT>
-    iterator get(const timeT& ts) const
+    iterator get(const time_value_type& ts) const
     {
-
-      iterator i = std::lower_bound(_storage.begin(), _storage.end(), ts, [](const value_type& a, const timeT& b) { return a.ts < b; });
+      iterator i = std::lower_bound(_storage.begin(), _storage.end(), ts, [](const value_type& a, const time_value_type& b) { return a.ts < b; });
 
       if (i != _storage.end()) // found
       {
@@ -85,14 +83,14 @@ namespace daqu
 
         return _storage.end(); // not found
       }
+
     }
 
-    template <typename timeT>
-    auto get(const timeT& target_ts, const decltype(timeT() - timeT())& max_ts_diff) const
+    auto get(const time_value_type& target_ts, const different_time_value_type& max_ts_diff) const
     {
       iterator closest = get(target_ts);
 
-      result<iterator, decltype(timeT() - timeT())> res;
+      result res{};
       res.iterator = closest;
 
       if (closest == _storage.end())
@@ -115,16 +113,15 @@ namespace daqu
       return res;
     }
 
-    template <typename timeT>
-    bool in_range(const timeT& target_ts)
+    bool in_range(const time_value_type& target_ts)
     {
       return _storage.size() > 2 && target_ts <= (last())->ts && target_ts >= (_storage.begin())->ts;
     }
 
-    template <typename timeT, typename Interpolation = detail::default_interpolation_data<timeT>>
-    value_type get_data_inter(const iterator& iter, const timeT& target_ts, Interpolation interpolation = {})
+    template <typename Interpolation = detail::default_interpolation_data<data_value_type, time_value_type>>
+    value_type get_data_inter(const iterator& iter, const time_value_type& target_ts, Interpolation interpolation = {})
     {
-      auto inter = [&](const iterator& l, const iterator& r, const timeT& ts) {
+      auto inter = [&](const iterator& l, const iterator& r, const time_value_type& ts) {
         float range = (r->ts - l->ts).count();
 
         float w1 = float((ts - l->ts).count()) / range;
@@ -156,5 +153,9 @@ namespace daqu
 
     Container& _storage;
   };
+  template<typename Container, typename ...Args>
+  auto make_storage_accessor( Args&& ...args ) {
+    return storage_data_accessor<Container>{std::forward<Args>(args)...};
+  }
 
 } // namespace daqu
