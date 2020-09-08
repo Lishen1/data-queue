@@ -7,13 +7,10 @@ namespace daqu
   namespace detail
   {
       template <typename timeT>
-      struct interpolate_data
+      struct default_interpolation_data
       {
         stamped_data<std::string, timeT> operator()(const stamped_data<std::string, timeT>& a, const float& w0,
                                                     const stamped_data<std::string, timeT>& b, const float& w1) {
-          stamped_data<std::string, timeT> c;
-          c.data = a.data + b.data;
-          c.ts   = a.ts;
           return a;
         }
       };
@@ -124,7 +121,7 @@ namespace daqu
       return _storage.size() > 2 && target_ts <= (last())->ts && target_ts >= (_storage.begin())->ts;
     }
 
-    template <typename timeT, typename Interpolation = detail::interpolate_data<timeT>>
+    template <typename timeT, typename Interpolation = detail::default_interpolation_data<timeT>>
     value_type get_data_inter(const iterator& iter, const timeT& target_ts, Interpolation interpolation = {})
     {
       auto inter = [&](const iterator& l, const iterator& r, const timeT& ts) {

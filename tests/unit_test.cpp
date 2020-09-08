@@ -60,10 +60,10 @@ TEST(storage_data_accessor, simple_get_inrange_data_iter_test)
     daqu::stamped_data<std::string, tp> c;
         c.data = a.data + b.data;
         c.ts   = a.ts;
-        return a;
+        return c;
   });
   
   EXPECT_EQ(res.status, daqu::storage_access_status::success);
   EXPECT_EQ(in_range, true);
-  EXPECT_EQ(dat.data, dat2.data);
+  EXPECT_NE(dat.data, dat2.data);
 }
