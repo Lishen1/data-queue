@@ -10,10 +10,9 @@ namespace daqu
       template <typename T, typename timeT>
       struct default_interpolation_data
       {
-        stamped_data<T, timeT> operator()(const stamped_data<T, timeT>& a, const float& w0, const stamped_data<T, timeT>& b,
-                                                    const float& w1)
+        stamped_data<T, timeT> operator()(const stamped_data<T, timeT>& l, const stamped_data<T, timeT>& , const timeT& )
         {
-          return a;
+          return l;
         }
       };
   }
@@ -50,44 +49,39 @@ namespace daqu
     {
       iterator                  it;
       different_time_value_type time_diff;
-      storage_access_status status;
+      storage_access_status     status;
     };
 
-    storage_data_accessor(Container& buff) : _storage(buff){
-    };
+    storage_data_accessor(Container& buff) : _storage(buff) {};
 
     /// \brief return iter with equal or greater timestamp
-    iterator get(const time_value_type& ts) const
+    iterator get(const time_value_type& ts) const noexcept
     {
-      iterator i = std::lower_bound(_storage.begin(), _storage.end(), ts, [](const value_type& a, const time_value_type& b) { return a.ts < b; });
+      iterator it = std::lower_bound(_storage.begin(), _storage.end(), ts, [](const value_type& a, const time_value_type& b) { return a.ts < b; });
 
-      if (i != _storage.end()) // found
+      if (it != _storage.end()) // found
       {
-        if (i == _storage.begin())
-          return i;
+        if (it == _storage.begin())
+          return it;
 
-        const auto& d1 = time_adiff(i->ts, ts);
-        iterator    i2 = std::prev(i);
+        const auto& d1 = time_adiff(it->ts, ts);
+        iterator    i2 = std::prev(it);
 
         if (i2 != _storage.begin())
         {
           const auto& d2 = time_adiff(i2->ts, ts);
           if (d2 < d1)
-            i = i2;
+            it = i2;
         }
-        return i; // found
       }
       else
       {
-        if (!_storage.empty())
-          return last();
-
-        return _storage.end(); // not found
+        it = !_storage.empty() ? last() : _storage.end();
       }
-
+      return it;
     }
 
-    auto get(const time_value_type& target_ts, const different_time_value_type& max_ts_diff) const
+    auto get(const time_value_type& target_ts, const different_time_value_type& max_ts_diff) const noexcept
     {
       iterator closest = get(target_ts);
 
@@ -114,21 +108,16 @@ namespace daqu
       return res;
     }
 
-    bool in_range(const time_value_type& target_ts)
+    bool in_range(const time_value_type& target_ts) const noexcept
     {
       return _storage.size() > 2 && target_ts <= (last())->ts && target_ts >= (_storage.begin())->ts;
     }
 
     template <typename Interpolation = detail::default_interpolation_data<data_value_type, time_value_type>>
-    value_type get_data_inter(const iterator& iter, const time_value_type& target_ts, Interpolation interpolation = {})
+    value_type get_data_inter(const iterator& iter, const time_value_type& target_ts, Interpolation interpolation = {}) const noexcept
     {
       auto inter = [&](const iterator& l, const iterator& r, const time_value_type& ts) {
-        float range = (r->ts - l->ts).count();
-
-        float w1 = float((ts - l->ts).count()) / range;
-        float w0 = float((r->ts - ts).count()) / range;
-
-        return interpolation(*l, w0, *r, w1);
+        return interpolation(*l, *r, ts);
       };
 
       if (iter->ts > target_ts)
