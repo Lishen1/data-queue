@@ -77,9 +77,9 @@ TEST(storage_data_accessor, simple_get_inrange_data_iter_test_2)
 
   tp ref_tp2 = std::chrono::steady_clock::now();
 
-  auto accesor = daqu::make_storage_accessor<std::vector<daqu::stamped_data<std::string, tp>>>(buffer);
+  auto accesor = daqu::access(buffer);
   std::vector<daqu::stamped_data<std::string, tp>> buffer2 {};
-  auto accesor2 = daqu::make_storage_accessor<std::vector<daqu::stamped_data<std::string, tp>>>(buffer2);
+  auto accesor2 = daqu::access(buffer2);
 
   auto d0 = ref_tp0 < ref_tp1;
   auto d1 = ref_tp2 < ref_tp1;

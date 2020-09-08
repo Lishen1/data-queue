@@ -155,7 +155,8 @@ namespace daqu
     Container& _storage;
   };
   template<typename Container>
-  auto make_storage_accessor( Container& container ) {
+  auto access(Container& container)
+  {
     return storage_data_accessor<Container>(container);
   }
 
