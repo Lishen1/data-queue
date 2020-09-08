@@ -4,6 +4,20 @@
 
 namespace daqu
 {
+  namespace detail
+  {
+      template <typename timeT>
+      struct interpolate_data
+      {
+        stamped_data<std::string, timeT> operator()(const stamped_data<std::string, timeT>& a, const float& w0,
+                                                    const stamped_data<std::string, timeT>& b, const float& w1) {
+          stamped_data<std::string, timeT> c;
+          c.data = a.data + b.data;
+          c.ts   = a.ts;
+          return a;
+        }
+      };
+  }
 
   enum class storage_access_status
   {
@@ -19,7 +33,7 @@ namespace daqu
     return (a > b ? a - b : b - a);
   }
 
-  template <typename starageT>
+  template <typename Container>
   class storage_data_accessor
   {
 
@@ -32,9 +46,9 @@ namespace daqu
       storage_access_status status;
     };
 
-    using iterator       = typename starageT::iterator;
-    using const_iterator = typename starageT::const_iterator;
-    using value_type     = typename starageT::value_type;
+    using iterator       = typename Container::iterator;
+    using const_iterator = typename Container::const_iterator;
+    using value_type     = typename Container::value_type;
 
     template <typename timeT>
     struct result_type
@@ -42,7 +56,7 @@ namespace daqu
       using type = result<iterator, decltype(timeT() - timeT())>;
     };
 
-    storage_data_accessor(starageT& buff) : _storage(buff){};
+    storage_data_accessor(Container& buff) : _storage(buff){};
 
     /// \brief return iter with equal or greater timestamp
     template <typename timeT>
@@ -70,7 +84,7 @@ namespace daqu
       else
       {
         if (!_storage.empty())
-          return std::prev(_storage.end());
+          return last();
 
         return _storage.end(); // not found
       }
@@ -107,19 +121,19 @@ namespace daqu
     template <typename timeT>
     bool in_range(const timeT& target_ts)
     {
-      return _storage.size() > 2 && target_ts <= (std::prev(_storage.end()))->ts && target_ts >= (_storage.begin())->ts;
+      return _storage.size() > 2 && target_ts <= (last())->ts && target_ts >= (_storage.begin())->ts;
     }
 
-    template <typename timeT>
-    value_type get_data_inter(const iterator& iter, const timeT& target_ts)
+    template <typename timeT, typename Interpolation = detail::interpolate_data<timeT>>
+    value_type get_data_inter(const iterator& iter, const timeT& target_ts, Interpolation interpolation = {})
     {
-      auto inter = [](const iterator& l, const iterator& r, const timeT& ts) {
+      auto inter = [&](const iterator& l, const iterator& r, const timeT& ts) {
         float range = (r->ts - l->ts).count();
 
         float w1 = float((ts - l->ts).count()) / range;
         float w0 = float((r->ts - ts).count()) / range;
 
-        return interpolate_data(*l, w0, *r, w1);
+        return interpolation(*l, w0, *r, w1);
       };
 
       if (iter->ts > target_ts)
@@ -127,11 +141,11 @@ namespace daqu
         if (iter == _storage.begin())
           return *iter;
 
-        return inter(std::prev(iter), iter, target_ts);
+        return inter(last(), iter, target_ts);
       }
       else if (iter->ts < target_ts)
       {
-        if (iter == std::prev(_storage.end()))
+        if (iter == last())
           return *iter;
 
         return inter(iter, std::next(iter), target_ts);
@@ -139,9 +153,11 @@ namespace daqu
       else
         return *iter;
     }
-
+    
   private:
-    starageT& _storage;
+    iterator last() const { return std::prev(_storage.end()); }
+
+    Container& _storage;
   };
 
 } // namespace daqu
