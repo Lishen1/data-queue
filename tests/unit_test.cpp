@@ -56,11 +56,6 @@ struct simp_interpolation
   using tp = std::chrono::time_point<std::chrono::steady_clock, std::chrono::nanoseconds>;
   daqu::stamped_data<std::string, tp> operator()(const daqu::stamped_data<std::string, tp>& l, const daqu::stamped_data<std::string, tp> &r, const tp& ts)
   {
-    auto [w1, w0] = daqu::get_coefficients(
-      static_cast<float>((ts - l.ts).count()), 
-      static_cast<float>((r.ts - ts).count()),                           
-      static_cast<float>((r.ts - l.ts).count()));
-
     return l;
   }
 };

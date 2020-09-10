@@ -18,11 +18,7 @@ namespace daqu
       };
   } // namespace detail
 
-  inline constexpr auto get_coefficients(const float ls, const float rs, const float range) {
-    float w1 = ls / range;
-    float w0 = rs / range;
-    return std::make_tuple(w1, w0);
-  }
+
 
   enum class storage_access_status
   {

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.14)
 
 project( data_queue)
 
-option(DATA_QUEUE_EXAMPLES "Should the examples to be." NO)
+option(DATA_QUEUE_EXAMPLES "Should the examples to be." YES)
 option(DATA_QUEUE_TESTS "Should the examples to be." YES)
 
 include(cmake/warnings.cmake)
