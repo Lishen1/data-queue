@@ -20,14 +20,14 @@ namespace daqu
   // override it if cast not works
   // Example:
   // namespace daqu {
+  //   template<>
   //   float extract(const CustomType &ct) {
   //      return ct.getFloat();
   //   }
   // }
   /// \brief return float type from custom
   template<typename T>
-  float extract(const T& value)
-  { 
+  float extract(const T& value) { 
     return static_cast<float>(value);
   }
 

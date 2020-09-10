@@ -8,6 +8,7 @@
 using tp    = std::chrono::time_point<std::chrono::steady_clock, std::chrono::nanoseconds>;
 namespace daqu
 {
+  template<>
   float extract(const tp::duration& value) { return value.count(); }
 
 } // namespace daqu
