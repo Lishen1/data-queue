@@ -5,136 +5,219 @@
 #include <chrono>
 #include <thread>
 
-using tp    = std::chrono::time_point<std::chrono::steady_clock, std::chrono::nanoseconds>;
+using tp = std::chrono::time_point<std::chrono::steady_clock, std::chrono::nanoseconds>;
 namespace daqu
 {
-  template<>
-  float extract(const tp::duration& value) { return value.count(); }
+  template <>
+  float extract(const tp::duration& value)
+  {
+    return value.count();
+  }
 
 } // namespace daqu
 
-TEST(storage_data_accessor, simple_get_inrange_data_iter_test)
-{
-  using buffT = std::vector<daqu::stamped_data<std::string, tp>>;
-  buffT buffer;
-
-  tp ref_tp0 = std::chrono::steady_clock::now();
-
-  buffer.reserve(5);
-
-  buffer.emplace_back("one", std::chrono::steady_clock::now());
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-  buffer.emplace_back("two", std::chrono::steady_clock::now());
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-  buffer.emplace_back("three", std::chrono::steady_clock::now());
-  tp ref_tp1 = std::chrono::steady_clock::now();
-
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-  buffer.emplace_back("four", std::chrono::steady_clock::now());
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-  buffer.emplace_back("five", std::chrono::steady_clock::now());
-
-  tp ref_tp2 = std::chrono::steady_clock::now();
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-  daqu::storage_data_accessor<buffT> accesor(buffer);
-
-  using namespace std::chrono_literals;
-
-  std::chrono::nanoseconds ts_thresh = 1ms;
-
-  auto res = accesor.get(ref_tp1, ts_thresh);
-
-  bool in_range = accesor.in_range(ref_tp1);
-  bool in_range2 = accesor.in_range(std::chrono::steady_clock::now());
-
-  //auto dat       = accesor.get_data_inter(res.iterator, ref_tp1);
-  
-  EXPECT_EQ(res.status, daqu::storage_access_status::success);
-  EXPECT_EQ(in_range, true);
-  EXPECT_EQ(in_range2, false);
-}
-struct simp_interpolation
-{
-  using tp = std::chrono::time_point<std::chrono::steady_clock, std::chrono::nanoseconds>;
-  daqu::stamped_data<std::string, tp> operator()(const daqu::stamped_data<std::string, tp>& l, const float w0,
-                                                 const daqu::stamped_data<std::string, tp>& r, const float w1)
-  {
-    return l;
-  }
-};
-TEST(storage_data_accessor, simple_get_inrange_data_iter_test_2)
+TEST(storage_data_accessor, exact_access_test)
 {
   using tp    = std::chrono::time_point<std::chrono::steady_clock, std::chrono::nanoseconds>;
-  using buffT = std::vector<daqu::stamped_data<std::string, tp>>;
+  using buffT = std::vector<daqu::stamped_data<int, tp>>;
   buffT buffer;
 
-  auto before_buffer_timestamp = std::chrono::steady_clock::now();
+  {
+    auto r0 = daqu::access(buffer).get(tp{std::chrono::nanoseconds{0}});
+    EXPECT_EQ(r0, buffer.end());
+    EXPECT_EQ(r0, buffer.cend());
+  }
 
-  tp ref_tp0 = std::chrono::steady_clock::now();
-  buffer.reserve(5);
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  {
+    buffer.emplace_back(10, tp{std::chrono::nanoseconds{1}});
 
-  auto t = std::chrono::steady_clock::now();
-  buffer.emplace_back("one", t);
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    auto r0 = daqu::access(buffer).get(tp{std::chrono::nanoseconds{0}});
+    EXPECT_EQ(r0->data, 10);
 
-  auto accesor = daqu::access(buffer);
+    auto r1 = daqu::access(buffer).get(tp{std::chrono::nanoseconds{100}});
+    EXPECT_EQ(r1->data, 10);
+  }
 
-  EXPECT_EQ(accesor.in_range(before_buffer_timestamp), false); 
-  EXPECT_EQ(accesor.in_range(t), false);
+  {
+    buffer.emplace_back(20, tp{std::chrono::nanoseconds{100}});
 
-  auto t2 = std::chrono::steady_clock::now();
-  buffer.emplace_back("two", t2);
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    auto r0 = daqu::access(buffer).get(tp{std::chrono::nanoseconds{1}});
+    EXPECT_EQ(r0->data, 10);
 
-  EXPECT_EQ(accesor.in_range(before_buffer_timestamp), false);
-  EXPECT_EQ(accesor.in_range(t2), false);
+    auto r1 = daqu::access(buffer).get(tp{std::chrono::nanoseconds{100}});
+    EXPECT_EQ(r1->data, 20);
 
-  auto t3 = std::chrono::steady_clock::now();
-  buffer.emplace_back("three", t3);
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    auto r2 = daqu::access(buffer).get(tp{std::chrono::nanoseconds{51}});
+    EXPECT_EQ(r2->data, 20);
 
-  EXPECT_EQ(accesor.in_range(before_buffer_timestamp), false);
-  EXPECT_EQ(accesor.in_range(t2), true);
+    auto r3 = daqu::access(buffer).get(tp{std::chrono::nanoseconds{49}});
+    EXPECT_EQ(r3->data, 10);
+  }
 
-  tp ref_tp1 = std::chrono::steady_clock::now();
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  {
+    buffer.emplace_back(30, tp{std::chrono::nanoseconds{200}});
 
-  EXPECT_EQ(accesor.in_range(ref_tp1), false);
+    auto r0 = daqu::access(buffer).get(tp{std::chrono::nanoseconds{1}});
+    EXPECT_EQ(r0->data, 10);
 
-  tp ref_tp2 = std::chrono::steady_clock::now();
+    auto r1 = daqu::access(buffer).get(tp{std::chrono::nanoseconds{100}});
+    EXPECT_EQ(r1->data, 20);
 
-  std::vector<daqu::stamped_data<std::string, tp>> buffer2 {};
-  auto accesor2 = daqu::access(buffer2);
-  EXPECT_EQ(accesor2.in_range(ref_tp2), false);
+    auto r2 = daqu::access(buffer).get(tp{std::chrono::nanoseconds{200}});
+    EXPECT_EQ(r2->data, 30);
 
-  using namespace std::chrono_literals;
-  std::chrono::nanoseconds ts_thresh = 1ms;
+    auto r3 = daqu::access(buffer).get(tp{std::chrono::nanoseconds{51}});
+    EXPECT_EQ(r3->data, 20);
 
-  auto r1 = accesor.get(before_buffer_timestamp);
-  auto r2 = accesor.get(t3);
-  EXPECT_EQ(r1, buffer.begin());
+    auto r4 = daqu::access(buffer).get(tp{std::chrono::nanoseconds{49}});
+    EXPECT_EQ(r4->data, 10);
 
-  EXPECT_EQ(r2, std::prev(buffer.end()));
+    auto r5 = daqu::access(buffer).get(tp{std::chrono::nanoseconds{150}});
+    EXPECT_EQ(r5->data, 30);
 
-  auto res = accesor.get(ref_tp1, ts_thresh);
-  auto res2 = accesor2.get(t, ts_thresh);
+    auto r6 = daqu::access(buffer).get(tp{std::chrono::nanoseconds{149}});
+    EXPECT_EQ(r6->data, 20);
 
-  bool in_range  = accesor.in_range(ref_tp1);
-  bool in_range2 = accesor.in_range(std::chrono::steady_clock::now());
+    auto r7 = daqu::access(buffer).get(tp{std::chrono::nanoseconds{400}});
+    EXPECT_EQ(r7->data, 30);
+  }
+}
 
-  auto dat = accesor.get_data_inter(res.it, ref_tp1);
+TEST(storage_data_accessor, interop_access_test)
+{
 
-  auto dat2 = accesor.get_data_inter(res.it, ref_tp1, simp_interpolation{});
+  struct int_interpolation
+  {
+    using tp = std::chrono::time_point<std::chrono::steady_clock, std::chrono::nanoseconds>;
+    daqu::stamped_data<int, tp> operator()(const daqu::stamped_data<int, tp>& l, const float w0, const daqu::stamped_data<int, tp>& r, const float w1,
+                                           const tp& tar_ts)
+    {
+      return daqu::stamped_data<int, tp>(int(l.data * w0 + r.data * w1), tar_ts);
+    }
+  };
 
-  EXPECT_EQ(res.status, daqu::storage_access_status::timestamp_diff_larger_then_thresh);
-  EXPECT_EQ(res2.status, daqu::storage_access_status::not_enough_elements); /**/
-  EXPECT_EQ(in_range, false);
-  EXPECT_EQ(in_range2, false);
-  EXPECT_EQ(dat.data, dat2.data);
+  auto int_inter = int_interpolation();
+
+  using tp    = std::chrono::time_point<std::chrono::steady_clock, std::chrono::nanoseconds>;
+  using buffT = std::vector<daqu::stamped_data<int, tp>>;
+  buffT buffer;
+
+  {
+    buffer.emplace_back(10, tp{std::chrono::nanoseconds{0}});
+    buffer.emplace_back(20, tp{std::chrono::nanoseconds{100}});
+    buffer.emplace_back(30, tp{std::chrono::nanoseconds{200}});
+
+    auto r0  = daqu::access(buffer).get(tp{std::chrono::nanoseconds{0}});
+    auto ir0 = daqu::access(buffer).get_data_inter(r0, tp{std::chrono::nanoseconds{0}}, int_inter);
+    EXPECT_EQ(ir0.data, 10);
+
+    auto r1  = daqu::access(buffer).get(tp{std::chrono::nanoseconds{100}});
+    auto ir1 = daqu::access(buffer).get_data_inter(r1, tp{std::chrono::nanoseconds{100}}, int_inter);
+    EXPECT_EQ(ir1.data, 20);
+
+    auto r2  = daqu::access(buffer).get(tp{std::chrono::nanoseconds{100}});
+    auto ir2 = daqu::access(buffer).get_data_inter(r1, tp{std::chrono::nanoseconds{50}}, int_inter);
+    EXPECT_EQ(ir2.data, 15);
+  }
+}
+
+TEST(storage_data_accessor, threshold_access_test)
+{
+
+  using tp    = std::chrono::time_point<std::chrono::steady_clock, std::chrono::nanoseconds>;
+  using buffT = std::vector<daqu::stamped_data<int, tp>>;
+  buffT buffer;
+
+  std::chrono::nanoseconds thesh{20};
+
+  {
+
+    auto r0 = daqu::access(buffer).get(tp{std::chrono::nanoseconds{21}}, thesh);
+    EXPECT_EQ(r0.status, daqu::storage_access_status::not_enough_elements);
+  }
+
+  {
+    buffer.clear();
+    buffer.emplace_back(10, tp{std::chrono::nanoseconds{0}});
+
+    auto r0 = daqu::access(buffer).get(tp{std::chrono::nanoseconds{21}}, thesh);
+    EXPECT_EQ(r0.status, daqu::storage_access_status::timestamp_diff_larger_then_thresh);
+    EXPECT_EQ(r0.time_diff, std::chrono::nanoseconds{21});
+
+    auto r1 = daqu::access(buffer).get(tp{std::chrono::nanoseconds{41}}, thesh);
+    EXPECT_EQ(r1.status, daqu::storage_access_status::timestamp_diff_larger_then_thresh);
+    EXPECT_EQ(r1.time_diff, std::chrono::nanoseconds{41});
+  }
+
+  {
+    buffer.clear();
+    buffer.emplace_back(10, tp{std::chrono::nanoseconds{0}});
+    buffer.emplace_back(20, tp{std::chrono::nanoseconds{100}});
+    buffer.emplace_back(30, tp{std::chrono::nanoseconds{200}});
+
+    auto r0 = daqu::access(buffer).get(tp{std::chrono::nanoseconds{0}}, thesh);
+    EXPECT_EQ(r0.status, daqu::storage_access_status::success);
+    EXPECT_EQ(r0.time_diff, std::chrono::nanoseconds{0});
+    EXPECT_EQ(r0.it->data, 10);
+
+    auto r1 = daqu::access(buffer).get(tp{std::chrono::nanoseconds{100}}, thesh);
+    EXPECT_EQ(r1.status, daqu::storage_access_status::success);
+    EXPECT_EQ(r1.time_diff, std::chrono::nanoseconds{0});
+    EXPECT_EQ(r1.it->data, 20);
+
+    auto r2 = daqu::access(buffer).get(tp{std::chrono::nanoseconds{200}}, thesh);
+    EXPECT_EQ(r2.status, daqu::storage_access_status::success);
+    EXPECT_EQ(r2.time_diff, std::chrono::nanoseconds{0});
+    EXPECT_EQ(r2.it->data, 30);
+
+    auto r3 = daqu::access(buffer).get(tp{std::chrono::nanoseconds{20}}, thesh);
+    EXPECT_EQ(r3.status, daqu::storage_access_status::success);
+    EXPECT_EQ(r3.time_diff, std::chrono::nanoseconds{20});
+    EXPECT_EQ(r3.it->data, 10);
+
+    auto r4 = daqu::access(buffer).get(tp{std::chrono::nanoseconds{120}}, thesh);
+    EXPECT_EQ(r4.status, daqu::storage_access_status::success);
+    EXPECT_EQ(r4.time_diff, std::chrono::nanoseconds{20});
+    EXPECT_EQ(r4.it->data, 20);
+
+    auto r5 = daqu::access(buffer).get(tp{std::chrono::nanoseconds{180}}, thesh);
+    EXPECT_EQ(r5.status, daqu::storage_access_status::success);
+    EXPECT_EQ(r5.time_diff, std::chrono::nanoseconds{20});
+    EXPECT_EQ(r5.it->data, 30);
+
+    auto r6 = daqu::access(buffer).get(tp{std::chrono::nanoseconds{21}}, thesh);
+    EXPECT_EQ(r6.status, daqu::storage_access_status::timestamp_diff_larger_then_thresh);
+    EXPECT_EQ(r6.time_diff, std::chrono::nanoseconds{21});
+
+    auto r7 = daqu::access(buffer).get(tp{std::chrono::nanoseconds{121}}, thesh);
+    EXPECT_EQ(r7.status, daqu::storage_access_status::timestamp_diff_larger_then_thresh);
+    EXPECT_EQ(r7.time_diff, std::chrono::nanoseconds{21});
+
+    auto r8 = daqu::access(buffer).get(tp{std::chrono::nanoseconds{179}}, thesh);
+    EXPECT_EQ(r8.status, daqu::storage_access_status::timestamp_diff_larger_then_thresh);
+    EXPECT_EQ(r8.time_diff, std::chrono::nanoseconds{21});
+  }
+}
+
+TEST(storage_data_accessor, in_range_test)
+{
+
+  using tp    = std::chrono::time_point<std::chrono::steady_clock, std::chrono::nanoseconds>;
+  using buffT = std::vector<daqu::stamped_data<int, tp>>;
+  buffT buffer;
+
+  std::chrono::nanoseconds thesh{20};
+
+  buffer.emplace_back(10, tp{std::chrono::nanoseconds{0}});
+  buffer.emplace_back(20, tp{std::chrono::nanoseconds{100}});
+  buffer.emplace_back(30, tp{std::chrono::nanoseconds{200}});
+
+  EXPECT_EQ(daqu::access(buffer).in_range(tp{std::chrono::nanoseconds{0}}), true);
+
+  EXPECT_EQ(daqu::access(buffer).in_range(tp{std::chrono::nanoseconds{10}}), true);
+
+  EXPECT_EQ(daqu::access(buffer).in_range(tp{std::chrono::nanoseconds{200}}), true);
+
+  EXPECT_EQ(daqu::access(buffer).in_range(tp{std::chrono::nanoseconds{201}}), false);
+  EXPECT_EQ(daqu::access(buffer).in_range(tp{std::chrono::nanoseconds{301}}), false);
 }
