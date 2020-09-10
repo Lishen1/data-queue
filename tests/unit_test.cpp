@@ -5,9 +5,15 @@
 #include <chrono>
 #include <thread>
 
+using tp    = std::chrono::time_point<std::chrono::steady_clock, std::chrono::nanoseconds>;
+namespace daqu
+{
+  float extract(const tp::duration& value) { return value.count(); }
+
+} // namespace daqu
+
 TEST(storage_data_accessor, simple_get_inrange_data_iter_test)
 {
-  using tp    = std::chrono::time_point<std::chrono::steady_clock, std::chrono::nanoseconds>;
   using buffT = std::vector<daqu::stamped_data<std::string, tp>>;
   buffT buffer;
 
@@ -54,7 +60,8 @@ TEST(storage_data_accessor, simple_get_inrange_data_iter_test)
 struct simp_interpolation
 {
   using tp = std::chrono::time_point<std::chrono::steady_clock, std::chrono::nanoseconds>;
-  daqu::stamped_data<std::string, tp> operator()(const daqu::stamped_data<std::string, tp>& l, const daqu::stamped_data<std::string, tp> &r, const tp& ts)
+  daqu::stamped_data<std::string, tp> operator()(const daqu::stamped_data<std::string, tp>& l, const float w0,
+                                                 const daqu::stamped_data<std::string, tp>& r, const float w1)
   {
     return l;
   }
@@ -123,10 +130,6 @@ TEST(storage_data_accessor, simple_get_inrange_data_iter_test_2)
   auto dat = accesor.get_data_inter(res.it, ref_tp1);
 
   auto dat2 = accesor.get_data_inter(res.it, ref_tp1, simp_interpolation{});
-  using simp = simp_interpolation;
-  auto dat21 = accesor.get_data_inter(res.it, ref_tp1, simp{});
-  using sp = simp;
-  auto dat221 = accesor.get_data_inter(res.it, ref_tp1, sp{});
 
   EXPECT_EQ(res.status, daqu::storage_access_status::timestamp_diff_larger_then_thresh);
   EXPECT_EQ(res2.status, daqu::storage_access_status::not_enough_elements); /**/

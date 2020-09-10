@@ -2,7 +2,6 @@
 #include "types.h"
 #include <algorithm>
 #include <type_traits>
-#include <tuple>
 
 namespace daqu
 {
@@ -11,13 +10,15 @@ namespace daqu
       template <typename T, typename timeT>
       struct default_interpolation_data
       {
-        stamped_data<T, timeT> operator()(const stamped_data<T, timeT>& l, const stamped_data<T, timeT>& , const timeT& )
+        stamped_data<T, timeT> operator()(const stamped_data<T, timeT>& l, const float , const stamped_data<T, timeT>&, const float )
         {
           return l;
         }
       };
   } // namespace detail
 
+  template<typename T>
+  float extract(const T& value);
 
 
   enum class storage_access_status
@@ -120,7 +121,11 @@ namespace daqu
     value_type get_data_inter(const iterator& iter, const time_value_type& target_ts, Interpolation interpolation = {}) const noexcept
     {
       auto inter = [&](const iterator& l, const iterator& r, const time_value_type& ts) {
-        return interpolation(*l, *r, ts);
+        const float range = extract(r->ts - l->ts);
+        const float w0    = extract(ts - l->ts) / range;
+        const float w1    = extract(r->ts - ts) / range;
+
+        return interpolation(*l, w0, *r, w1);
       };
 
       if (iter->ts > target_ts)
