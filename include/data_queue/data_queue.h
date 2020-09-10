@@ -7,14 +7,14 @@ namespace daqu
 {
   namespace detail
   {
-      template <typename T, typename timeT>
-      struct default_interpolation_data
+    template <typename T, typename timeT>
+    struct default_interpolation_data
+    {
+      stamped_data<T, timeT> operator()(const stamped_data<T, timeT>& l, const float, const stamped_data<T, timeT>&, const float, const timeT&)
       {
-        stamped_data<T, timeT> operator()(const stamped_data<T, timeT>& l, const float , const stamped_data<T, timeT>&, const float )
-        {
-          return l;
-        }
-      };
+        return l;
+      }
+    };
   } // namespace detail
 
   // override it if cast not works
@@ -26,11 +26,11 @@ namespace daqu
   //   }
   // }
   /// \brief return float type from custom
-  template<typename T>
-  float extract(const T& value) { 
+  template <typename T>
+  float extract(const T& value)
+  {
     return static_cast<float>(value);
   }
-
 
   enum class storage_access_status
   {
@@ -51,14 +51,15 @@ namespace daqu
   {
 
   public:
-    static_assert(std::is_same_v<typename Container::value_type::stamped_data_category, daqu::stamped_data_category_tag>, "works only with daqu::stamped_data type.");
+    static_assert(std::is_same_v<typename Container::value_type::stamped_data_category, daqu::stamped_data_category_tag>,
+                  "works only with daqu::stamped_data type.");
 
-    using iterator                      = typename Container::iterator;
-    using const_iterator                = typename Container::const_iterator;
-    using value_type                    = typename Container::value_type;
-    using data_value_type               = typename value_type::data_value_type;
-    using time_value_type               = typename value_type::time_value_type;
-    using different_time_value_type     = decltype(std::declval<time_value_type>() - std::declval<time_value_type>());
+    using iterator                  = typename Container::iterator;
+    using const_iterator            = typename Container::const_iterator;
+    using value_type                = typename Container::value_type;
+    using data_value_type           = typename value_type::data_value_type;
+    using time_value_type           = typename value_type::time_value_type;
+    using different_time_value_type = decltype(std::declval<time_value_type>() - std::declval<time_value_type>());
 
     struct result
     {
@@ -67,7 +68,7 @@ namespace daqu
       storage_access_status     status;
     };
 
-    storage_data_accessor(Container& buff) : _storage(buff) {};
+    storage_data_accessor(Container& buff) : _storage(buff){};
 
     /// \brief return iter with equal or greater timestamp
     iterator get(const time_value_type& ts) const noexcept
@@ -82,12 +83,9 @@ namespace daqu
         const auto& d1 = time_adiff(it->ts, ts);
         iterator    i2 = std::prev(it);
 
-        if (i2 != _storage.begin())
-        {
-          const auto& d2 = time_adiff(i2->ts, ts);
-          if (d2 < d1)
-            it = i2;
-        }
+        const auto& d2 = time_adiff(i2->ts, ts);
+        if (d2 < d1)
+          it = i2;
       }
       else
       {
@@ -136,7 +134,7 @@ namespace daqu
         const float w0    = extract(ts - l->ts) / range;
         const float w1    = extract(r->ts - ts) / range;
 
-        return interpolation(*l, w0, *r, w1);
+        return interpolation(*l, w0, *r, w1, ts);
       };
 
       if (iter->ts > target_ts)
@@ -156,13 +154,13 @@ namespace daqu
       else
         return *iter;
     }
-    
+
   private:
     iterator last() const { return std::prev(_storage.end()); }
 
     Container& _storage;
   };
-  template<typename Container>
+  template <typename Container>
   auto access(Container& container)
   {
     return storage_data_accessor<Container>(container);
