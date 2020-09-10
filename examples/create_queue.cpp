@@ -71,4 +71,12 @@ void create_simp_accessor() {
 
 int main() {
   create_simp_accessor();
+  using buffer_type = std::vector<daqu::stamped_data<std::string, float>>;
+
+  buffer_type buffer;
+
+  daqu::access(buffer).get_data_inter(
+      buffer.begin(), 12,
+      [](const daqu::stamped_data<std::string, float> &l, const float w0, const daqu::stamped_data<std::string, float> &r, const float w1) { return l;
+  });
 }
