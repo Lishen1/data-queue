@@ -519,9 +519,15 @@ namespace
 
 } // namespace
 
+BENCHMARK(BM_creation_accessor_get_data_inter_at_start)->Arg(8)->Arg(64)->Arg(512)->Arg(1 << 10)->Arg(8 << 10);
+BENCHMARK(BM_creation_accessor_get_data_inter_in_middle)->Arg(8)->Arg(64)->Arg(512)->Arg(1 << 10)->Arg(8 << 10);
+BENCHMARK(BM_creation_accessor_get_data_inter_random_access)->Arg(8)->Arg(64)->Arg(512)->Arg(1 << 10)->Arg(8 << 10);
+BENCHMARK(BM_creation_accessor_get_data_inter_at_end)->Arg(8)->Arg(64)->Arg(512)->Arg(1 << 10)->Arg(8 << 10);
+
 BENCHMARK(BM_creation_accessor_get_data_inter_with_interpolation_at_start)->Arg(8)->Arg(64)->Arg(512)->Arg(1 << 10)->Arg(8 << 10);
 BENCHMARK(BM_creation_accessor_get_data_inter_with_interpolation_in_middle)->Arg(8)->Arg(64)->Arg(512)->Arg(1 << 10)->Arg(8 << 10);
 BENCHMARK(BM_creation_accessor_get_data_inter_with_interpolation_random_access)->Arg(8)->Arg(64)->Arg(512)->Arg(1 << 10)->Arg(8 << 10);
 BENCHMARK(BM_creation_accessor_get_data_inter_with_interpolation_at_end)->Arg(8)->Arg(64)->Arg(512)->Arg(1 << 10)->Arg(8 << 10);
+
 
 BENCHMARK_MAIN();
