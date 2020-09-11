@@ -12,8 +12,8 @@ namespace daqu
     typedef dataT                     data_value_type;
     typedef timeT                     time_value_type;
 
+    stamped_data() = default;
     stamped_data(const dataT& d, const timeT& t) : data(d), ts(t) {}
-    stamped_data() : data(dataT()), ts(timeT()) {}
 
     data_value_type data;
     time_value_type ts;
