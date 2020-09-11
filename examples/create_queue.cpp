@@ -1,26 +1,27 @@
 #include <data_queue/data_queue.h>
 
-#include <vector>
 #include <chrono>
 #include <string>
 #include <thread>
+#include <vector>
 
 #include <iostream>
 
-using timestamp    = std::chrono::high_resolution_clock;
-using tp = timestamp::time_point;
+using timestamp = std::chrono::high_resolution_clock;
+using tp        = timestamp::time_point;
 
-
-namespace daqu {
-  template<>
-  float extract(const timestamp::duration& value) { 
+namespace daqu
+{
+  template <>
+  float extract(const timestamp::duration& value)
+  {
     return value.count();
   }
 
-}
+} // namespace daqu
 
-
-void create_simp_accessor() {
+void create_simp_accessor()
+{
 
   using buffer_type = std::vector<daqu::stamped_data<std::string, tp>>;
 
@@ -41,11 +42,10 @@ void create_simp_accessor() {
   buffer.emplace_back("three", timestamp::now());
   tp timestamp_after_buffer = timestamp::now();
 
-  
   using namespace std::chrono_literals;
   std::chrono::nanoseconds ts_thresh = 1ms;
 
-  auto res = daqu::access(buffer).get(timestamp_inmiddle_buffer);
+  auto res            = daqu::access(buffer).get(timestamp_inmiddle_buffer);
   auto res_with_tresh = daqu::access(buffer).get(timestamp_inmiddle_buffer, ts_thresh);
 
   bool in_range_1 = daqu::access(buffer).in_range(timestamp_before_buffer);
@@ -54,11 +54,10 @@ void create_simp_accessor() {
 
   auto dat = daqu::access(buffer).get_data_inter(res_with_tresh.it, timestamp_after_buffer);
 
-  auto dat_with_interpolation_super_simp = daqu::access(buffer).get_data_inter(
-      res_with_tresh.it, timestamp_after_buffer,[](const daqu::stamped_data<std::string, tp> &l, const float w0, const daqu::stamped_data<std::string, tp> &r, const float w1) {
-  
-      return l;
-  });
+  auto dat_with_interpolation_super_simp
+      = daqu::access(buffer).get_data_inter(res_with_tresh.it, timestamp_after_buffer,
+                                            [](const daqu::stamped_data<std::string, tp>& l, const float w0,
+                                               const daqu::stamped_data<std::string, tp>& r, const float w1, const tp& ts) { return l; });
 
   std::cout << "res: " << res->data << "\n";
 
@@ -70,6 +69,7 @@ void create_simp_accessor() {
   std::cout << "dat_with_interpolation_super_simp: " << dat_with_interpolation_super_simp.data << "\n";
 }
 
-int main() {
+int main()
+{
   create_simp_accessor();
 }
