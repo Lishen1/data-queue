@@ -61,11 +61,25 @@ namespace daqu
     using time_value_type           = typename value_type::time_value_type;
     using different_time_value_type = decltype(std::declval<time_value_type>() - std::declval<time_value_type>());
 
+    // struct result
+    //{
+    //  iterator                  it;
+    //  different_time_value_type time_diff;
+    //  storage_access_status     status;
+    //};
+
+    template <typename iteratorT, typename time_diffT>
     struct result
     {
-      iterator                  it;
-      different_time_value_type time_diff;
-      storage_access_status     status;
+      iteratorT             it;
+      time_diffT            time_diff;
+      storage_access_status status;
+    };
+
+    template <typename timeT>
+    struct result_type
+    {
+      using type = result<iterator, decltype(timeT() - timeT())>;
     };
 
     storage_data_accessor(Container& buff) : _storage(buff){};
@@ -98,7 +112,8 @@ namespace daqu
     {
       iterator closest = get(target_ts);
 
-      result res{};
+      // result res{};
+      result<iterator, different_time_value_type> res;
       res.it = closest;
 
       if (closest == _storage.end())
