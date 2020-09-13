@@ -54,32 +54,18 @@ namespace daqu
     static_assert(std::is_same_v<typename Container::value_type::stamped_data_category, daqu::stamped_data_category_tag>,
                   "works only with daqu::stamped_data type.");
 
-    using iterator                  = typename Container::iterator;
-    using const_iterator            = typename Container::const_iterator;
-    using value_type                = typename Container::value_type;
-    using data_value_type           = typename value_type::data_value_type;
-    using time_value_type           = typename value_type::time_value_type;
-    using different_time_value_type = decltype(std::declval<time_value_type>() - std::declval<time_value_type>());
+    using iterator                   = typename Container::iterator;
+    using const_iterator             = typename Container::const_iterator;
+    using value_type                 = typename Container::value_type;
+    using data_value_type            = typename value_type::data_value_type;
+    using time_value_type            = typename value_type::time_value_type;
+    using difference_time_value_type = decltype(std::declval<time_value_type>() - std::declval<time_value_type>());
 
-    // struct result
-    //{
-    //  iterator                  it;
-    //  different_time_value_type time_diff;
-    //  storage_access_status     status;
-    //};
-
-    template <typename iteratorT, typename time_diffT>
     struct result
     {
-      iteratorT             it;
-      time_diffT            time_diff;
-      storage_access_status status;
-    };
-
-    template <typename timeT>
-    struct result_type
-    {
-      using type = result<iterator, decltype(timeT() - timeT())>;
+      iterator                   it;
+      difference_time_value_type time_diff;
+      storage_access_status      status;
     };
 
     storage_data_accessor(Container& buff) : _storage(buff){};
@@ -94,12 +80,11 @@ namespace daqu
         if (it == _storage.begin())
           return it;
 
-        const auto& d1 = time_adiff(it->ts, ts);
-        iterator    i2 = std::prev(it);
-
-        const auto& d2 = time_adiff(i2->ts, ts);
+        const auto& d1  = time_adiff(it->ts, ts);
+        iterator    it2 = std::prev(it);
+        const auto& d2  = time_adiff(it2->ts, ts);
         if (d2 < d1)
-          it = i2;
+          it = it2;
       }
       else
       {
@@ -108,12 +93,11 @@ namespace daqu
       return it;
     }
 
-    auto get(const time_value_type& target_ts, const different_time_value_type& max_ts_diff) const noexcept
+    auto get(const time_value_type& target_ts, const difference_time_value_type& max_ts_diff) const noexcept
     {
       iterator closest = get(target_ts);
 
-      // result res{};
-      result<iterator, different_time_value_type> res;
+      result res;
       res.it = closest;
 
       if (closest == _storage.end())
